@@ -1,0 +1,323 @@
+
+    
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Communication Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0a0f24;
+            color: #e0e7ff;
+            font-family: 'Inter', sans-serif;
+        }
+        .sidebar {
+            width: 250px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        .menu-item {
+            padding: 12px;
+            margin: 5px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .menu-item:hover, .menu-item.active {
+            background: linear-gradient(90deg, #06b6d4, #3b82f6);
+        }
+        .section {
+            display: none;
+            padding: 20px;
+            border-radius: 12px;
+            margin-left: 270px;
+            margin-top: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .btn {
+            background: linear-gradient(90deg, #06b6d4, #3b82f6);
+            padding: 10px 15px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        input, textarea {
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #e0e7ff;
+            padding: 10px;
+            border-radius: 6px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h2 class="text-xl font-bold text-indigo-400 mb-6">📊 Dashboard</h2>
+        <div class="menu-item active" onclick="showSection('email-section')">📩 Email Classifier</div>
+        <div class="menu-item" onclick="showSection('slack-section')">💬 Slack Integration</div>
+        <div class="menu-item" onclick="showSection('whatsapp-section')">📱 WhatsApp Assistant</div>
+    </div>
+
+    <!-- Email Section -->
+    <div id="email-section" class="section">
+        <h3 class="text-xl font-semibold mb-2">📩 Email Classifier</h3>
+        <button class="btn" onclick="fetchEmails()">Fetch Emails</button>
+        <table class="w-full mt-4 border-collapse text-sm">
+            <thead>
+                <tr class="bg-gray-800">
+                    <th class="p-2">Priority</th>
+                    <th class="p-2">Subject</th>
+                    <th class="p-2">Snippet</th>
+                </tr>
+            </thead>
+            <tbody id="email-list"></tbody>
+        </table>
+    </div>
+
+    <!-- Slack Section -->
+    <div id="slack-section" class="section">
+        <h3 class="text-xl font-semibold mb-2">💬 Slack Messages</h3>
+        <button class="btn" onclick="fetchSlackMessages()">Fetch Slack</button>
+        <table class="w-full mt-4 border-collapse text-sm">
+            <thead>
+                <tr class="bg-gray-800">
+                    <th class="p-2">Slack Message</th>
+                </tr>
+            </thead>
+            <tbody id="slack-list"></tbody>
+        </table>
+    </div>
+
+    <!-- WhatsApp Section -->
+    <div id="whatsapp-section" class="section">
+        <h3 class="text-xl font-semibold mb-2">📱 WhatsApp Assistant</h3>
+        <div class="mb-6">
+            <button onclick="openWhatsAppWeb()">📤 Open WhatsApp Web</button>
+            <h4 class="text-lg font-semibold mb-2">Send WhatsApp Message</h4>
+            <input type="text" id="whatsapp-phone" placeholder="Enter phone number">
+            <input type="text" id="whatsapp-message" placeholder="Enter message" class="mt-2">
+            <button class="btn w-full mt-2" onclick="sendWhatsApp()">Send</button>
+        </div>
+        <div class="mb-6">
+            <h4 class="text-lg font-semibold mb-2">🤖 Generate Smart Reply</h4>
+            <input type="text" id="smart-reply-input" placeholder="Enter message">
+            <button class="btn w-full mt-2" onclick="generateSmartReply()">Generate Reply</button>
+            <p class="mt-2 text-indigo-300"><strong>Reply:</strong> <span id="smart-reply-output"></span></p>
+        </div>
+        <div>
+            <h4 class="text-lg font-semibold mb-2">📝 Summarize Chat</h4>
+            <textarea id="chat-summary-input" placeholder="Enter chat messages" rows="4"></textarea>
+            <button class="btn w-full mt-2" onclick="summarizeChat()">Summarize</button>
+            <p class="mt-2 text-indigo-300"><strong>Summary:</strong> <span id="chat-summary-output"></span></p>
+        </div>
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.style.display = 'none';
+            });
+            document.getElementById(sectionId).style.display = 'block';
+
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+        }
+
+        // Show Email section by default
+        showSection('email-section');
+
+        async function fetchEmails() {
+            try {
+                const response = await fetch("/fetch-emails");
+                const data = await response.json();
+                const emailList = document.getElementById("email-list");
+                emailList.innerHTML = "";
+
+                if (data.status === "success") {
+                    data.emails.forEach(email => {
+                        const row = document.createElement("tr");
+                        row.innerHTML = `<td>${email.priority}</td><td>${email.subject}</td><td>${email.snippet || "No snippet available"}</td>`;
+                        emailList.appendChild(row);
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching emails:", error);
+            }
+        }
+
+        async function fetchSlackMessages() {
+            try {
+                const response = await fetch("/fetch-slack");
+                const data = await response.json();
+                const slackList = document.getElementById("slack-list");
+                slackList.innerHTML = "";
+
+                if (data.status === "success") {
+                    data.messages.forEach(msg => {
+                        const row = document.createElement("tr");
+                        row.innerHTML = `<td>${msg.text}</td>`;
+                        slackList.appendChild(row);
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching Slack messages:", error);
+            }
+        }
+
+        
+        async function fetchEmails() {
+            try {
+                const response = await fetch("/fetch-emails");
+                const data = await response.json();
+                const emailList = document.getElementById("email-list");
+                emailList.innerHTML = ""; // Clear previous results
+
+                if (data.status === "success") {
+                    data.emails.forEach(email => {
+                        const row = document.createElement("tr");
+                        const snippet = email.snippet || "No snippet available";
+
+                        row.innerHTML = `
+                            <td>${email.priority}</td>
+                            <td>${email.subject}</td>
+                            <td>${snippet}</td>
+                        `;
+                        emailList.appendChild(row);
+                    });
+                } else {
+                    emailList.innerHTML = `<tr><td colspan="3">No emails available or an error occurred.</td></tr>`;
+                }
+            } catch (error) {
+                console.error("Error fetching emails:", error);
+                showAlert("Error fetching emails. Please try again.", "error");
+            }
+        }
+
+        async function fetchSlackMessages() {
+            try {
+                const response = await fetch("/fetch-slack");
+                const data = await response.json();
+                const slackList = document.getElementById("slack-list");
+                slackList.innerHTML = ""; // Clear previous results
+
+                if (data.status === "success") {
+                    data.messages.forEach(msg => {
+                        const row = document.createElement("tr");
+                        row.innerHTML = `<td>${msg.text}</td>`;
+                        slackList.appendChild(row);
+                    });
+                } else {
+                    slackList.innerHTML = `<tr><td colspan="1">No Slack messages or an error occurred.</td></tr>`;
+                }
+            } catch (error) {
+                console.error("Error fetching Slack messages:", error);
+                showAlert("Error fetching Slack messages. Please try again.", "error");
+            }
+        }
+
+        async function sendWhatsApp() {
+            const phone = document.getElementById("whatsapp-phone").value;
+            const message = document.getElementById("whatsapp-message").value;
+
+            if (!phone || !message) {
+                showAlert("Please enter both phone number and message.", "error");
+                return;
+            }
+
+            try {
+                const response = await fetch("/send-whatsapp", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ phone, message })
+                });
+                const data = await response.json();
+                showAlert(data.message, data.status === "success" ? "success" : "error");
+            } catch (error) {
+                console.error("Error sending WhatsApp message:", error);
+                showAlert("Error sending WhatsApp message. Please try again.", "error");
+            }
+        }
+
+        async function generateSmartReply() {
+            const message = document.getElementById("smart-reply-input").value;
+
+            if (!message) {
+                showAlert("Please enter a message to generate a smart reply.", "error");
+                return;
+            }
+
+            try {
+                const response = await fetch("/whatsapp/smart-reply", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message })
+                });
+                const data = await response.json();
+                document.getElementById("smart-reply-output").innerText = data.reply || "No reply generated.";
+            } catch (error) {
+                console.error("Error generating smart reply:", error);
+                showAlert("Error generating smart reply. Please try again.", "error");
+            }
+        }
+        function openWhatsAppWeb() {
+            window.open("https://web.whatsapp.com/", "_blank");
+        }
+
+        async function summarizeChat() {
+            const messages = document.getElementById("chat-summary-input").value;
+
+            if (!messages) {
+                showAlert("Please enter chat messages to summarize.", "error");
+                return;
+            }
+
+            try {
+                const response = await fetch("/whatsapp/summarize-chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ messages })
+                });
+                const data = await response.json();
+                document.getElementById("chat-summary-output").innerText = data.summary || "No summary generated.";
+            } catch (error) {
+                console.error("Error summarizing chat:", error);
+                showAlert("Error summarizing chat. Please try again.", "error");
+            }
+        }
+
+        function showAlert(message, type = "success") {
+            const alertDiv = document.createElement("div");
+            alertDiv.className = `alert ${type}`;
+            alertDiv.innerText = message;
+            document.body.prepend(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+    
+    </script>
+
+</body>
+</html>
